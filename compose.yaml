@@ -1,0 +1,49 @@
+services:
+  denet-users-service:
+    container_name:   denet-users-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./.env:/app/.env
+      - ./migrate:/app/migrate
+      - ./docs:/app/docs
+    ports:
+    - "${HTTP_PORT}:${HTTP_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    env_file:
+      - ./.env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./migrate/role:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5  
+    networks:
+      - app-network
+
+volumes:
+  pg_data:
+
+networks:
+  app-network:
+    driver: bridge
+
+
